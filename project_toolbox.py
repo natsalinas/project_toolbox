@@ -169,11 +169,16 @@ def show_home():
     view_projects_frame.pack_forget()
     home_frame.pack(fill="both", expand=True)
 
-def show_create_project():   
+def show_create_API():   
     home_frame.pack_forget()
     view_projects_frame.pack_forget()
     create_project_frame.pack(fill="both", expand=True)
 
+def show_create_pyapp():
+    home_frame.pack_forget()
+    view_projects_frame.pack_forget()
+    create_project_frame.pack_forget()
+    create_pyapp_frame.pack(fill="both", expand=True)
 # Function used by View INT Projects btn. 
 def open_integrations_folder():
     desktop_path = get_desktop_path()
@@ -185,12 +190,12 @@ def open_integrations_folder():
 
 # Main GUI
 root = tk.Tk()
-root.title("UCF Workday Integrations")
+root.title("NS Dev Toolbox")
 root.geometry("420x420")
 root.resizable(False,False)
 # Custom Colors 
 bg_color = "#ffffff"
-btn_color = "#FFC904"
+btn_color = "#32CD32"
 btn_width = 25
 
 root.configure(bg=bg_color)
@@ -198,13 +203,14 @@ root.configure(bg=bg_color)
 home_frame = tk.Frame(root,bg=bg_color)
 subtitle_frame = tk.Frame(home_frame, bg=bg_color)
 create_project_frame = tk.Frame(root, bg=bg_color)
+create_pyapp_frame = tk.Frame(root, bg=bg_color)
 view_projects_frame = tk.Frame(root, bg=bg_color)
 button_frame = tk.Frame(create_project_frame, bg=bg_color)
 
 # Home Screen
 home_title = tk.Label(
     home_frame, 
-    text="Integrations Toolbox", 
+    text="NS Dev Toolbox", 
     font=("Arial", 22, "bold"),
     bg=bg_color,
     fg="black"
@@ -215,12 +221,11 @@ subtitle_frame.pack(fill="x", padx=20, pady=10)
 # Subtitle
 home_subtitle = tk.Label(
     subtitle_frame,
-    text="Centralized toolbox for creating and managing local Workday Integration projects.",
+    text="Centralized toolbox for creating and managing development projects.",
     font=("Arial", 10),
     bg=bg_color,
     wraplength=350,
     justify="center"
-
 )
 home_subtitle.pack()
 
@@ -247,16 +252,26 @@ except Exception as e:
 # Home - New INT Project button
 btn_new_project = tk.Button(
     home_frame,
-    text="Create new INT Project",
-    command =show_create_project,
+    text="Create new API Project",
+    command =show_create_API,
     bg=btn_color,
     width=btn_width
 )
 btn_new_project.pack(pady=10)
+
+# Basic Python App - TKinter GUI
+btn_new_pyapp = tk.Button(
+    home_frame,
+    text="Create Basic Python App",
+    command =show_create_pyapp,
+    bg=btn_color,
+    width=btn_width
+)
+
 # Home - View INT Projects button
 btn_view_projects = tk.Button(
     home_frame,
-    text="View INT Projects",
+    text="View Projects",
     command=open_integrations_folder,
     width=btn_width
 )
