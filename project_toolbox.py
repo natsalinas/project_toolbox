@@ -27,6 +27,89 @@ def toggle_xslt_options():
     else:
         xslt_frame.pack_forget()
 
+# Function to create XSLT template 
+def create_xslt_template(project_path):
+
+    namespace = entry_namespace.get().strip()
+
+    # Validate namespace
+    if namespace and not namespace.startswith("urn:com.workday.report/"):
+        messagebox.showerror(
+            "Namespace Error",
+            "Report Namespace must start with:\n\n"
+            "urn:com.workday.report/"
+        )
+        return
+
+    intnumber = entry_int.get().strip()
+    csv_function = ""
+
+    if namespace:
+        wd_namespace = namespace
+        namespace_comment = ""
+    else:
+        wd_namespace = "REPORT_NAMESPACE"
+        namespace_comment = """
+    <!-- TODO: Replace REPORT_NAMESPACE with the report namespace -->
+        """
+    
+    if csv_quotes_var.get():
+        csv_function = """
+    <!-- CSV-safe quoting function -->
+    <xsl:function name="local:wrap_quotes" as="xs:string">
+        <xsl:param name="v" as="xs:string?"/>
+        <xsl:sequence
+            select="concat('&quot;',
+            replace(normalize-space($v), '&quot;', '&quot;&quot;'),
+            '&quot;')" />
+    </xsl:function>
+    """
+    
+    xslt_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet
+    xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+    xmlns:wd="{wd_namespace}"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:local="urn:local"
+    version="2.0">
+    {namespace_comment}
+    <xsl:output method="text" encoding="UTF-8"/>
+    <xsl:strip-space elements="*"/>
+
+    <!-- Newline -->
+    <xsl:variable name="line_break" select="'&#x0A;'"/>
+    {csv_function}
+    <xsl:template match="/wd:Report_Data">
+
+        <!-- TODO: Enter CSV Header Values -->
+        <xsl:text></xsl:text>
+        <xsl:value-of select="$line_break"/>
+
+        <!-- Report Data -->
+        <xsl:for-each select="wd:Report_Entry">
+
+            <!-- TODO: Call CSV-safe quoting function for each value:
+                <xsl:value-of select="local:wrap_quotes(wd:XML_Alias)"/>
+            -->
+            <xsl:text>,</xsl:text>
+            <xsl:value-of select="$line_break"/>
+
+        </xsl:for-each>
+
+    </xsl:template>
+
+</xsl:stylesheet>
+    """
+
+    xslt_file = os.path.join(
+        project_path,
+        "XSLT",
+        f"INT{intnumber}_XSLT.xsl"
+    )
+
+    with open(xslt_file, "w", encoding="utf-8") as f:
+        f.write(xslt_content)
+
 # Function to create folder structure 
 def create_folders():
     int_number = entry_int.get().strip()
@@ -36,6 +119,19 @@ def create_folders():
         messagebox.showerror("Error", "Please fill in all fields.")
         return
     
+    # Validate namespace if XSLT template is requested
+    if create_xslt_var.get():
+
+        namespace = entry_namespace.get().strip()
+
+        if namespace and not namespace.startswith("urn:com.workday.report/"):
+            messagebox.showerror(
+                "Namespace Error",
+                "Report Namespace must start with:\n\n"
+                "urn:com.workday.report/"
+            )
+            return
+        
     # Determine desktop path for user. 
     desktop_path = get_desktop_path()
     # All integration system files will be in Workday/Integrations directory on the user desktop. 
@@ -50,7 +146,10 @@ def create_folders():
 
     for sub in subfolders:
         os.makedirs(os.path.join(full_path, sub), exist_ok=True)
-    
+
+    if create_xslt_var.get():
+        create_xslt_template(full_path)        
+
     messagebox.showinfo("Success", f"Created folders for:\n{folder_name}")
 
     entry_int.delete(0, tk.END)
@@ -75,67 +174,18 @@ def show_create_project():
     view_projects_frame.pack_forget()
     create_project_frame.pack(fill="both", expand=True)
 
-def show_view_projects():
-    home_frame.pack_forget()
-    create_project_frame.pack_forget()
-    view_projects_frame.pack(fill="both", expand=True)
-
-    refresh_project_list()
-
-def refresh_project_list():
-    project_listbox.delete(0, tk.END)
-
+# Function used by View INT Projects btn. 
+def open_integrations_folder():
     desktop_path = get_desktop_path()
     base_path = desktop_path / "Workday" / "Integrations"
 
-    if not os.path.exists(base_path):
-        return
+    os.makedirs(base_path, exist_ok=True)
 
-    for folder in sorted(os.listdir(base_path)):
-        folder_path = os.path.join(base_path, folder)
-
-        if os.path.isdir(folder_path):
-            project_listbox.insert(
-                tk.END,
-                f"{folder} | {folder_path}"
-            )
-def update_function_description():
-    if csv_quotes_var.get():
-
-        description = (
-            "CSV Safe Quoting\n\n"
-            "Wraps values in double quotes and "
-            "escapes commas in XML value."
-        )
-
-    elif date_format_var.get():
-
-        description = (
-            "Date Formatter\n\n"
-            "Converts Workday date values into "
-            "a standard output format."
-        )
-
-    elif null_handling_var.get():
-
-        description = (
-            "Null Handling\n\n"
-            "Provides default values when "
-            "source fields are empty."
-        )
-
-    else:
-
-        description = (
-            "Select a function to view details."
-        )
-
-    lbl_function_description.config(text=description)
-    
+    os.startfile(base_path)
 
 # Main GUI
 root = tk.Tk()
-root.title("Project Toolbox")
+root.title("UCF Workday Integrations")
 root.geometry("420x420")
 root.resizable(False,False)
 # Custom Colors 
@@ -154,7 +204,7 @@ button_frame = tk.Frame(create_project_frame, bg=bg_color)
 # Home Screen
 home_title = tk.Label(
     home_frame, 
-    text="Dev Toolbox", 
+    text="Integrations Toolbox", 
     font=("Arial", 22, "bold"),
     bg=bg_color,
     fg="black"
@@ -207,7 +257,7 @@ btn_new_project.pack(pady=10)
 btn_view_projects = tk.Button(
     home_frame,
     text="View INT Projects",
-    command=show_view_projects,
+    command=open_integrations_folder,
     width=btn_width
 )
 btn_view_projects.pack(pady=10)
@@ -218,7 +268,6 @@ btn_home = tk.Button(
     command=show_home,
     width=btn_width
 )
-btn_home.pack(pady=5)
 
 # New Project Frame - Create Project button 
 btn_create = tk.Button(
@@ -229,7 +278,10 @@ btn_create = tk.Button(
     fg="black", 
     width=btn_width
     )
+
+# Add buttons
 btn_create.pack(pady=15)
+btn_home.pack(pady=5)
 
 # Integration Number 
 label_int = tk.Label(create_project_frame, text="Integration Number:", bg=bg_color)
@@ -264,29 +316,6 @@ xslt_frame = tk.LabelFrame(
     bg=bg_color
 )
 
-# XSLT Functions Description Section
-lbl_function_title = tk.Label(
-    xslt_frame,
-    text="Function Description",
-    font=("Arial", 10, "bold"),
-    bg=bg_color
-)
-
-lbl_function_title.pack(anchor="w", pady=(10, 0))
-
-lbl_function_description = tk.Label(
-    xslt_frame,
-    text="Select a function to view details.",
-    bg=bg_color,
-    justify="left",
-    wraplength=300,
-    relief="sunken",
-    padx=10,
-    pady=10
-)
-
-lbl_function_description.pack(fill="x", pady=(5, 0))
-
 # Namespace
 label_namespace = tk.Label(
     xslt_frame,
@@ -316,9 +345,7 @@ chk_csv_quotes = tk.Checkbutton(
     xslt_frame,
     text="CSV Safe Quoting",
     variable=csv_quotes_var,
-    bg=bg_color,
-    font=("Arial", 9, "bold"),
-    command=update_function_description
+    bg=bg_color
 )
 
 chk_csv_quotes.pack(anchor="w")
